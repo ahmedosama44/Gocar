@@ -183,8 +183,8 @@ public class MainActivity extends Activity {
             String path = "http://172.20.10.2/" + Imagepath.get(Index.get(position));
             Picasso.get().load(path).into(imageview);
             modelname.setText("ModelName: " + Modelname.get(Index.get(position)));
-            productionyear.setText("ProductionYear: " + Distance.get(Index.get(position)));
-            fuellevel.setText("FuelLevel: " + /*Fuellevel.get(Index.get(position))*/Latitude.get(Index.get(position)) + "%"+Longitude.get(Index.get(position)));
+            productionyear.setText("ProductionYear: " + Productionyear.get(Index.get(position)));
+            fuellevel.setText("FuelLevel: " + Fuellevel.get(Index.get(position)) + "%");
             return view;
         }
     }
