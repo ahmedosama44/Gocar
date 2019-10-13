@@ -170,7 +170,7 @@ public class MainActivity extends Activity implements LocationListener {
             Picasso.get().load(path).into(imageview);
             modelname.setText("ModelName: " + Modelname.get(Index.get(position)));
             productionyear.setText("ProductionYear: " + Productionyear.get(Index.get(position)));
-            fuellevel.setText("FuelLevel: " + Distance.get(Index.get(position))+"%");
+            fuellevel.setText("FuelLevel: " + Fuellevel.get(Index.get(position))+"%");
             return view;
         }
     }
