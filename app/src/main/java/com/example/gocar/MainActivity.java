@@ -15,7 +15,9 @@ import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -31,14 +33,25 @@ import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
+import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class MainActivity extends Activity implements LocationListener {
+import static android.Manifest.permission.ACCESS_FINE_LOCATION;
+import static android.location.Location.distanceBetween;
+import static android.provider.SettingsSlicesContract.KEY_LOCATION;
+
+public class MainActivity extends Activity {
 
     private TextView txtName;
     private TextView txtEmail;
@@ -64,7 +77,9 @@ public class MainActivity extends Activity implements LocationListener {
     public Criteria criteria;
     public String bestProvider;
     private boolean flag;
-
+    private FusedLocationProviderClient client;
+    private boolean mLocationPermissionGranted;
+    private Location mLastKnownLocation;
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
@@ -72,6 +87,9 @@ public class MainActivity extends Activity implements LocationListener {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        if(savedInstanceState!=null) {
+            mLastKnownLocation = savedInstanceState.getParcelable(KEY_LOCATION);
+        }
         txtName = (TextView) findViewById(R.id.name);
         txtEmail = (TextView) findViewById(R.id.email);
         btnLogout = (Button) findViewById(R.id.btnLogout);
@@ -88,7 +106,8 @@ public class MainActivity extends Activity implements LocationListener {
         Index = new ArrayList<>();
         db = new SQLiteHandler(getApplicationContext());
         session = new SessionManager(getApplicationContext());
-
+        client = LocationServices.getFusedLocationProviderClient(this);
+        getmylocation();
         if (!session.isLoggedIn()) {
             logoutUser();
         }
@@ -111,8 +130,8 @@ public class MainActivity extends Activity implements LocationListener {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Intent locationintent = new Intent(getApplicationContext(), LocationActivity.class);
-                String data = Latitude.get(position)+"-"+Longitude.get(position);
-                locationintent.putExtra("DATA",data);
+                String data = Latitude.get(Index.get(position)) + "-" + Longitude.get(Index.get(position));
+                locationintent.putExtra("DATA", data);
                 startActivity(locationintent);
             }
         });
@@ -132,16 +151,11 @@ public class MainActivity extends Activity implements LocationListener {
         // session manager
 
     }
+
     public void onStart() {
         super.onStart();
     }
 
-    @Override
-    public void onLocationChanged(Location location) {
-        Mylatitude=location.getLatitude();
-        Mylongitude=location.getLongitude();
-
-    }
 
     class CustomAdapter extends BaseAdapter {
         @Override
@@ -169,8 +183,8 @@ public class MainActivity extends Activity implements LocationListener {
             String path = "http://172.20.10.2/" + Imagepath.get(Index.get(position));
             Picasso.get().load(path).into(imageview);
             modelname.setText("ModelName: " + Modelname.get(Index.get(position)));
-            productionyear.setText("ProductionYear: " + Productionyear.get(Index.get(position)));
-            fuellevel.setText("FuelLevel: " + Fuellevel.get(Index.get(position))+"%");
+            productionyear.setText("ProductionYear: " + Distance.get(Index.get(position)));
+            fuellevel.setText("FuelLevel: " + /*Fuellevel.get(Index.get(position))*/Latitude.get(Index.get(position)) + "%"+Longitude.get(Index.get(position)));
             return view;
         }
     }
@@ -225,8 +239,9 @@ public class MainActivity extends Activity implements LocationListener {
                         Imagepath.add(imagepath);
                         Fuellevel.add(fuellevel);
                     }
-                    getmylocation();
-                    calculatealldistances(Longitude,Latitude);
+                    //Mylatitude=29.9899501;
+                    //Mylongitude=31.5084313;
+                    calculatealldistances(Longitude, Latitude);
                     //db.retrievevehicles(Id, Modelname, Productionyear, Latitude, Longitude, Imagepath, Fuellevel);
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -244,40 +259,44 @@ public class MainActivity extends Activity implements LocationListener {
         }) {
         };
         AppController.getInstance().addToRequestQueue(strReq, tag_string_req);
-        System.out.println("11111111"+sortedDistance.toString());
+        System.out.println("11111111" + sortedDistance.toString());
     }
 
     public void getmylocation() {
-        if (isLocationEnabled(MainActivity.this)) {
-            locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-            criteria = new Criteria();
-            bestProvider = String.valueOf(locationManager.getBestProvider(criteria, true)).toString();
+        try {
+            //getLocationPermission();
+            mLocationPermissionGranted=true;
+            if (mLocationPermissionGranted) {
+                Task<Location> locationResult = client.getLastLocation();
+                locationResult.addOnCompleteListener(this, new OnCompleteListener<Location>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Location> task) {
+                        if (task.isSuccessful()) {
+                            // Set the map's camera position to the current location of the device.
+                            mLastKnownLocation = task.getResult();
+                            Mylatitude=mLastKnownLocation.getLatitude();
+                            Mylongitude=mLastKnownLocation.getLongitude();
+                            Toast.makeText(MainActivity.this,"SUCCESS",Toast.LENGTH_LONG);
+                        } else {
+                            Log.d(TAG, "Current location is null. Using defaults.");
+                            Toast.makeText(MainActivity.this,"FAILURE",Toast.LENGTH_LONG);
 
-            //You can still do this if you like, you might get lucky:
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
-                return;
+                        }
+                    }
+                });
             }
-            Location location = locationManager.getLastKnownLocation(bestProvider);
-            if (location != null) {
-                Log.e("TAG", "GPS is on");
-                Mylatitude = location.getLatitude();
-                Mylongitude = location.getLongitude();
-            }
-            else{
-                //This is what you need:
-                //locationManager.requestLocationUpdates(bestProvider, 1000, 0, (com.google.android.gms.location.LocationListener) this);
-            }
+        } catch (SecurityException e)  {
+            Log.e("Exception: %s", e.getMessage());
         }
-        else {
-            //prompt user to enable location....
-            //.................
+    }
+    private void getLocationPermission() {
+        if (ContextCompat.checkSelfPermission(this.getApplicationContext(),
+                android.Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            mLocationPermissionGranted = true;
+        } else {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},1);
         }
     }
     public static boolean isLocationEnabled(Context context) {
@@ -300,6 +319,10 @@ public class MainActivity extends Activity implements LocationListener {
         for(int i=0; i<longitude.size(); i++){
             double longit = Double.parseDouble(longitude.get(i));
             double latit = Double.parseDouble(latitude.get(i));
+            //float[] results = new float[10];
+            //Location.distanceBetween(Mylatitude,Mylongitude,longit,latit,results);
+            //double distance = results[0];/**/;
+
             double distance = calculatedistance(longit,latit);
             Distance.add(distance);
             TempDistance.add(distance);
