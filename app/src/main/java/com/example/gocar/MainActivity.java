@@ -57,6 +57,7 @@ public class MainActivity extends Activity {
     private TextView txtEmail;
     private Button btnCurrent;
     private Button btnLogout;
+    private Button showall;
     private SQLiteHandler db;
     private SessionManager session;
     private double Mylongitude;
@@ -80,9 +81,8 @@ public class MainActivity extends Activity {
     private FusedLocationProviderClient client;
     private boolean mLocationPermissionGranted;
     private Location mLastKnownLocation;
-
+    private String Userid;
     private static final String TAG = MainActivity.class.getSimpleName();
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -93,6 +93,7 @@ public class MainActivity extends Activity {
         txtName = (TextView) findViewById(R.id.name);
         txtEmail = (TextView) findViewById(R.id.email);
         btnLogout = (Button) findViewById(R.id.btnLogout);
+        showall = (Button) findViewById(R.id.showall);
         Id = new ArrayList<>();
         Modelname = new ArrayList<>();
         Productionyear = new ArrayList<>();
@@ -106,15 +107,14 @@ public class MainActivity extends Activity {
         Index = new ArrayList<>();
         db = new SQLiteHandler(getApplicationContext());
         session = new SessionManager(getApplicationContext());
+        HashMap<String, String> user = db.getUserDetails();
+        Userid = user.get("uid");
         client = LocationServices.getFusedLocationProviderClient(this);
         getmylocation();
         if (!session.isLoggedIn()) {
             logoutUser();
         }
-        // vehicles
         getvehicles();
-        //listview
-
         // Logout button click event
         btnLogout.setOnClickListener(new View.OnClickListener() {
 
@@ -126,37 +126,45 @@ public class MainActivity extends Activity {
         listview = (ListView) findViewById(R.id.listView);
         CustomAdapter custom = new CustomAdapter();
         listview.setAdapter(custom);
+        //getting long and latit and passing them to the map activity
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Intent locationintent = new Intent(getApplicationContext(), LocationActivity.class);
-                String data = Latitude.get(Index.get(position)) + "-" + Longitude.get(Index.get(position));
-                locationintent.putExtra("DATA", data);
+                Intent locationintent = new Intent(getApplicationContext(), DeviceDetailActivity.class);
+                locationintent.putExtra("Userid",Userid);
+                locationintent.putExtra("Carid",Id.get(Index.get(position)));
+                locationintent.putExtra("Modelname",Modelname.get(Index.get(position)));
+                locationintent.putExtra("Fuellevel",Fuellevel.get(Index.get(position)));
+                locationintent.putExtra("CarImagePath","http://192.168.8.100/" +Imagepath.get(Index.get(position)));
+                locationintent.putExtra("Currentlatitude",Mylatitude+"");
+                locationintent.putExtra("Currentlongitude",Mylongitude+"");
+                locationintent.putExtra("Carlatitude",Latitude.get(Index.get(position)) + "");
+                locationintent.putExtra("Carlongitude",Longitude.get(Index.get(position)) + "");
                 startActivity(locationintent);
             }
         });
-        System.out.println(Index.toString());
+        showall.setOnClickListener(new View.OnClickListener() {
 
-        //List View
-        //String path = "http://192.168.8.100/" + "android_login_api/car_images/opel_astra_image.png";
-        //Picasso.get().load(path).into(imageview);
+            public void onClick(View view) {
+                String la="";
+                String lg="";
+                String size = Latitude.size()+"";
+                for(int i=0;i<Latitude.size()-1;i++){
+                    la= la+Latitude.get(i)+",";
+                    lg= lg+Longitude.get(i)+",";
+                }
+                la= la+Latitude.get(Latitude.size()-1);
+                lg= lg+Longitude.get(Longitude.size()-1);
+                Intent locationintent = new Intent(getApplicationContext(), showall.class);
+                locationintent.putExtra("la",la );
+                locationintent.putExtra("lg",lg  );
+                locationintent.putExtra("size",size );
+                startActivity(locationintent);
+            }
 
-        // my location
 
-        //calculate distance
-
-
-        // SqLite database handler
-
-        // session manager
-
+        });
     }
-
-    public void onStart() {
-        super.onStart();
-    }
-
-
     class CustomAdapter extends BaseAdapter {
         @Override
         public int getCount() {
@@ -180,7 +188,7 @@ public class MainActivity extends Activity {
             TextView modelname = (TextView) view.findViewById(R.id.modelname);
             TextView productionyear = (TextView) view.findViewById(R.id.productionyear);
             TextView fuellevel = (TextView) view.findViewById(R.id.fuellevel);
-            String path = "http://172.20.10.2/" + Imagepath.get(Index.get(position));
+            String path = "http://192.168.8.100/" + Imagepath.get(Index.get(position));
             Picasso.get().load(path).into(imageview);
             modelname.setText("ModelName: " + Modelname.get(Index.get(position)));
             productionyear.setText("ProductionYear: " + Productionyear.get(Index.get(position)));
@@ -188,22 +196,18 @@ public class MainActivity extends Activity {
             return view;
         }
     }
-
     /**
      * Logging out the user. Will set isLoggedIn flag to false in shared
      * preferences Clears the user data from sqlite users table
      * */
     private void showCurrentLocation() {
-        Intent intent = new Intent(MainActivity.this, LocationActivity.class);
+        Intent intent = new Intent(MainActivity.this, MapsActivity.class);
         startActivity(intent);
         finish();
     }
-
     private void logoutUser() {
         session.setLogin(false);
-
         db.deleteUsers();
-
         // Launching the login activity
         Intent intent = new Intent(MainActivity.this, LoginActivity.class);
         startActivity(intent);
@@ -216,9 +220,9 @@ public class MainActivity extends Activity {
                 AppConfig.URL_Vehicles, new Response.Listener<String>() {
 
             @Override
+            // response from db
             public void onResponse(String response) {
                 Log.d(TAG, "Vehicles Response: " + response.toString());
-
                 try {
                     JSONArray vehicles = new JSONArray(response);
                     for (int i = 0; i < vehicles.length(); i++) {
@@ -230,7 +234,6 @@ public class MainActivity extends Activity {
                         String longitude = jObj.getString("longitude");
                         String imagepath = jObj.getString("imagepath");
                         String fuellevel = jObj.getString("fuellevel");
-                        //db.addvehicle(id, modelname, productionyear, latitude, longitude, imagepath, fuellevel);
                         Id.add(id);
                         Modelname.add(modelname);
                         Productionyear.add(productionyear);
@@ -239,14 +242,10 @@ public class MainActivity extends Activity {
                         Imagepath.add(imagepath);
                         Fuellevel.add(fuellevel);
                     }
-                    //Mylatitude=29.9899501;
-                    //Mylongitude=31.5084313;
                     calculatealldistances(Longitude, Latitude);
-                    //db.retrievevehicles(Id, Modelname, Productionyear, Latitude, Longitude, Imagepath, Fuellevel);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-
             }
         }, new Response.ErrorListener() {
 
@@ -258,13 +257,11 @@ public class MainActivity extends Activity {
             }
         }) {
         };
+        // request from db
         AppController.getInstance().addToRequestQueue(strReq, tag_string_req);
-        System.out.println("11111111" + sortedDistance.toString());
     }
-
     public void getmylocation() {
         try {
-            //getLocationPermission();
             mLocationPermissionGranted=true;
             if (mLocationPermissionGranted) {
                 Task<Location> locationResult = client.getLastLocation();
@@ -299,19 +296,13 @@ public class MainActivity extends Activity {
                     new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},1);
         }
     }
-    public static boolean isLocationEnabled(Context context) {
-        //...............
-        return true;
-    }
     public double calculatedistance(double longitude, double latitude ){
         Location startPoint=new Location("locationA");
         startPoint.setLatitude(Mylatitude);
         startPoint.setLongitude(Mylongitude);
-
         Location endPoint=new Location("locationA");
         endPoint.setLatitude(latitude);
         endPoint.setLongitude(longitude);
-
         double distance=startPoint.distanceTo(endPoint);
         return distance;
     }
@@ -319,32 +310,16 @@ public class MainActivity extends Activity {
         for(int i=0; i<longitude.size(); i++){
             double longit = Double.parseDouble(longitude.get(i));
             double latit = Double.parseDouble(latitude.get(i));
-            //float[] results = new float[10];
-            //Location.distanceBetween(Mylatitude,Mylongitude,longit,latit,results);
-            //double distance = results[0];/**/;
-
             double distance = calculatedistance(longit,latit);
             Distance.add(distance);
             TempDistance.add(distance);
-            System.out.println(distance);
-
         }
         sortedDistance=sort(TempDistance);
         for(int i=0;i<sortedDistance.size();i++) {
             Index.add(Distance.indexOf(sortedDistance.get(i)));
         }
-        System.out.println("Nour:"+Index.toString());
     }
     public ArrayList<Double> sort(ArrayList<Double> x) {
-//        double[] array = new double[x.size()];
-//        for(int i=0;i<x.size();i++) {
-//            array[i]=x.get(i);
-//        }
-//        Arrays.sort(array);
-//        x.clear();
-//        for(int i=0;i<x.size();i++) {
-//            x.set(i,array[i]);
-//        }
         Collections.sort(x);
         return  x;
     }

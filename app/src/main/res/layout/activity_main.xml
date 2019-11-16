@@ -14,14 +14,26 @@
 
     <Button
         android:id="@+id/btnLogout"
-        android:layout_width="187dp"
-        android:layout_height="59dp"
+        android:layout_width="154dp"
+        android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
         android:layout_alignParentBottom="true"
-        android:layout_marginEnd="65dp"
-        android:layout_marginBottom="33dp"
+        android:layout_marginEnd="91dp"
+        android:layout_marginBottom="45dp"
         android:background="@android:color/holo_purple"
         android:text="Logout"
         android:textSize="24sp" />
+
+    <Button
+        android:id="@+id/showall"
+        android:layout_width="153dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginEnd="92dp"
+        android:layout_marginBottom="122dp"
+        android:background="@android:color/holo_purple"
+        android:text="Show All"
+        android:textSize="22sp" />
 
 </RelativeLayout>

@@ -1,8 +1,6 @@
 package com.example.gocar;
-
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -13,14 +11,15 @@ import com.google.android.gms.maps.model.MarkerOptions;
 /**
  * An activity that displays a Google map with a marker (pin) to indicate a particular location.
  */
-public class LocationActivity extends AppCompatActivity
+public class showall extends AppCompatActivity
         implements OnMapReadyCallback {
-
+    String[] latit;
+    String[] longit;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // Retrieve the content view that renders the map.
-        setContentView(R.layout.activity_location);
+        setContentView(R.layout.activity_maps);
         // Get the SupportMapFragment and request notification
         // when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -41,24 +40,20 @@ public class LocationActivity extends AppCompatActivity
     public void onMapReady(GoogleMap googleMap) {
         // Add a marker in Sydney, Australia,
         // and move the map's camera to the same location.
-        int k=0;
-        String latitude="";
-        String longitude="";
-        String data= getIntent().getStringExtra("DATA");
-        for(int i=0;i<data.length();i++) {
-            if(data.charAt(i)=='-') {
-                k=i;
-            }
+        final String la= getIntent().getStringExtra("la");
+        final String lg= getIntent().getStringExtra("lg");
+        final String size = getIntent().getStringExtra("size");
+        int count = Integer.parseInt(size);
+        latit = new String[count];
+        latit=la.split(",");
+        longit = new String[count];
+        longit=lg.split(",");
+        for(int i=0;i<count;i++) {
+            LatLng latLng = new LatLng(Double.parseDouble(latit[i]),Double.parseDouble(longit[i]));
+            googleMap.addMarker(new MarkerOptions().position(latLng)
+                    .title("Car's Location"));
+            googleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+            googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 5));
         }
-        for(int i=0;i<k;i++) {
-            latitude=latitude+data.charAt(i);
-        }
-        for(int i=k+1;i<data.length();i++) {
-            longitude=longitude+data.charAt(i);
-        }
-        LatLng Current = new LatLng(Double.parseDouble(latitude),Double.parseDouble(longitude));
-        googleMap.addMarker(new MarkerOptions().position(Current)
-                .title("Car's Location"));
-        googleMap.moveCamera(CameraUpdateFactory.newLatLng(Current));
     }
 }

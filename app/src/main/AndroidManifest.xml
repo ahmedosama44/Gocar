@@ -15,7 +15,10 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
-        <activity android:name=".LocationActivity"></activity>
+        <activity android:name=".ReviewActivity"></activity>
+        <activity android:name=".showall" />
+        <activity android:name=".DeviceDetailActivity" />
+        <activity android:name=".MapsActivity" />
 
         <uses-library
             android:name="org.apache.http.legacy"

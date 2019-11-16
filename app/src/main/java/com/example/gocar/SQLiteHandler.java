@@ -130,7 +130,7 @@ public class SQLiteHandler extends SQLiteOpenHelper {
         if (cursor.getCount() > 0) {
             user.put("name", cursor.getString(1));
             user.put("email", cursor.getString(2));
-            user.put("uid", cursor.getString(3));
+            user.put("uid", cursor.getString(6));
             user.put("created_at", cursor.getString(4));
         }
         cursor.close();
